@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="sim" default="false"/>
+
+	<node pkg="usb_cam" type="usb_cam_node" name="theta_camera" unless="$(arg sim)">
+		<param name="video_device" value="/dev/video5"/>
+		<param name="camera_name" value="theta_camera"/>
+		<param name="camera_frame_id" value="theta_camera_optical_frame"/>
+		<param name="image_width" value="1920"/>
+		<param name="image_height" value="960"/>
+		<param name="pixel_format" value="yuyv" />
+	</node>
+
+	<group ns="theta_camera">
+		<node pkg="nodelet" type="nodelet" name="camera_nodelet_manager" args="manager"/>
+
+		<node pkg="image_transport" type="republish" name="decompress" args="compressed in:=image_raw raw out:=image_raw" if="$(arg sim)"/>
+
+		<node pkg="nodelet" type="nodelet" name="custom_resize" args="load image_proc/resize camera_nodelet_manager">
+			<remap from="image" to="image_raw"/>
+			<remap from="camera_info" to="camera_info"/>
+			<remap from="~image" to="custom/image_raw"/>
+			<remap from="~camera_info" to="custom/camera_info"/>
+			<param name="use_scale" value="1"/>
+			<param name="scale_width" value="0.65"/>
+			<param name="scale_height" value="0.65"/>
+			<param name="queue_size" value="5"/>
+		</node>
+		
+		<!-- qhd -->
+		<node pkg="nodelet" type="nodelet" name="qhd_resize" args="load image_proc/resize camera_nodelet_manager">
+			<remap from="image" to="image_raw"/>
+			<remap from="camera_info" to="camera_info"/>
+			<remap from="~image" to="qhd/image_raw"/>
+			<remap from="~camera_info" to="qhd/camera_info"/>
+			<param name="use_scale" value="1"/>
+			<param name="scale_width" value="0.5"/>
+			<param name="scale_height" value="0.5"/>
+			<param name="queue_size" value="5"/>
+		</node>
+	
+	</group>
+</launch>

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="image_topic1" default="/theta_camera/image_raw"/>
+	<arg name="image_topic2" default="/theta_camera/image_raw"/>
+
+	<arg name="gpu_id" default="0"/>
+	<arg name="model" default="mobilenet_thin"/>
+	<arg name="resolution1" default="640x640"/>
+	
+	<arg name="resolution2" default="192x192"/>
+
+	<arg name="crop_dist_trigger" default="3.0"/>
+    <arg name="init_crop_center_x" default="960"/>
+    <arg name="init_crop_center_y" default="515"/>
+    <arg name="target_topic" default="/monocular_person_following/target"/>
+
+	<arg name="thr1" default="0.35"/>
+
+	<node name="poseA_estimator" pkg="tfpose_ros" type="broadcaster_ros_A.py" output="screen" required="true">
+		<env name="CUDA_VISIBLE_DEVICES" value="$(arg gpu_id)"/>
+		<param name="camera" value="/theta_camera/custom/image_raw"/>
+		<param name="model" value="$(arg model)"/>
+		<param name="resolution1" value="400x400"/>
+	</node>
+
+	<node name="poseB_estimator" pkg="tfpose_ros" type="broadcaster_ros_B.py" output="screen" required="true">
+		<env name="CUDA_VISIBLE_DEVICES" value="$(arg gpu_id)"/>
+		<param name="camera" value="/theta_camera/custom/image_raw"/>
+		<param name="model" value="$(arg model)"/>
+		<param name="resolution1" value="400x400"/>
+	</node>
+
+	<node name="poseC_estimator" pkg="tfpose_ros" type="broadcaster_ros_C.py" output="screen" required="true">
+		<env name="CUDA_VISIBLE_DEVICES" value="$(arg gpu_id)"/>
+		<param name="camera" value="/theta_camera/custom/image_raw"/>
+		<param name="model" value="$(arg model)"/>
+		<param name="resolution1" value="400x400"/>
+	</node>
+
+	<node name="pose_estimator" pkg="tfpose_ros" type="broadcaster_ros_merger_ABC.py" output="screen" required="true">
+		<param name="assoc_index_thr" value="$(arg thr1)"/>
+	</node>	
+
+</launch>

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="sim" default="false"/>
+	<arg name="video" default="/home/filippo/dataset/edited/cam_in_1.mp4"/>
+
+   <node pkg="tracking_demo" type="gt_camera.py" name="gt_camera" output="screen" required="true">
+   	<param name="video" value="$(arg video)"/>
+	</node>
+
+	<group ns="theta_camera">
+		<node pkg="nodelet" type="nodelet" name="camera_nodelet_manager" args="manager"/>
+
+		<node pkg="image_transport" type="republish" name="decompress" args="compressed in:=image_raw raw out:=image_raw" if="$(arg sim)"/>
+
+		<!--camera_nodelet_manager-->
+		<node pkg="nodelet" type="nodelet" name="custom_resize" args="load image_proc/resize camera_nodelet_manager">
+			<remap from="image" to="image_raw"/>
+			<remap from="camera_info" to="camera_info"/>
+			<remap from="~image" to="custom/image_raw"/>
+			<remap from="~camera_info" to="custom/camera_info"/>
+			<param name="use_scale" value="1"/>
+			<param name="scale_width" value="0.65"/>
+			<param name="scale_height" value="0.65"/>
+			<param name="queue_size" value="5"/>
+		</node>
+		
+		<!-- qhd -->
+		<node pkg="nodelet" type="nodelet" name="qhd_resize" args="load image_proc/resize camera_nodelet_manager">
+			<remap from="image" to="image_raw"/>
+			<remap from="camera_info" to="camera_info"/>
+			<remap from="~image" to="qhd/image_raw"/>
+			<remap from="~camera_info" to="qhd/camera_info"/>
+			<param name="use_scale" value="1"/>
+			<param name="scale_width" value="0.5"/>
+			<param name="scale_height" value="0.5"/>
+			<param name="queue_size" value="5"/>
+		</node>
+	</group>
+</launch>

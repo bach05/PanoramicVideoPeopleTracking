@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="camera_name" default="/theta_camera/sd"/>
+
+  <arg name="use_face"    default="false"/>
+  <arg name="face_camera_name" default="$(arg camera_name)"/>
+
+  <!-- *** people detection *** -->
+  <include file="$(find monocular_people_tracking)/launch/tf_openpose.launch" if="true">
+    <arg name="image_topic" value="$(arg camera_name)/image_raw"/> <!-- it was image_rect-->
+    <!--
+    /// @arg model       : "cmu", "mobilenet_thin", "mobilenet_v2_large", or "mobilenet_v2_small"
+    /// @arg resolution  : e.g., "368x368", "432x368", "656x368"
+    ///
+    /// @brief parameter recommendation
+    ///        for TX2         "mobilenet_thin" & "368x368"
+    ///        for Xavier      "mobilenet_thin" & "656x368"
+    ///        for desktop PC  "cmu" & "656x368" (depending on the GPU)
+    -->
+    <arg name="model" value="mobilenet_thin"/>
+    <arg name="resolution" value="368x368"/>
+  </include>
+
+  <!-- *** people tracking *** -->
+  <node pkg="tracking_demo" type="omni_people_tracking_node" name="omni_people_tracking">
+    <remap from="camera_info" to="$(arg camera_name)/camera_info"/>
+
+    <!-- detection parameters -->
+    <param name="detection_confidence_thresh" value="0.1"/>
+    <param name="detection_border_thresh_w" value="100"/>
+    <param name="detection_border_thresh_h" value="25"/>
+
+    <!-- UKF parameters -->
+    <param name="measurement_noise_pix_cov" value="100"/>
+    <param name="process_noise_pos_cov" value="0.03"/>
+    <param name="process_noise_vel_cov" value="0.01"/>
+    <param name="process_noise_height_cov" value="1e-10"/>
+
+    <!-- tracking parameters -->
+    <param name="init_cov_scale" value="0.25"/>
+    <param name="association_maha_sq_thresh" value="9.0"/>
+    <param name="association_neck_ankle_max_dist" value="200"/>
+    <param name="association_neck_max_dist" value="150"/>
+    <param name="tracking_remove_trace_thresh" value="2.0"/>
+    <param name="tracking_newtrack_dist2exists_thersh" value="100"/>
+  </node>
+
+  <!-- *** face detection *** -->
+  <node pkg="monocular_person_following" type="face_detector_node.py" name="face_detector" output="screen" if="$(arg use_face)">
+    <remap from="camera_info" to="$(arg camera_name)/camera_info"/>
+    <remap from="image_rect" to="$(arg face_camera_name)/image_raw"/> <!-- in was image_rect-->
+
+    <param name="roi_scale" value="1.0"/>
+    <param name="face_detection_upscale_pyramid" value="1"/>
+    <param name="confidence_thresh" value="-0.5"/>
+    <param name="face_detection_expantion_scale" value="1.5"/>
+  </node>
+
+  <!-- *** face feature extraction *** -->
+  <node pkg="open_face_recognition" type="open_face_recognition_node.py" name="open_face_recognition" output="screen" if="$(arg use_face)">
+    <param name="embedding_framework" value="facenet"/>
+  </node>
+
+  <!-- *** person identification *** -->
+  <node pkg="monocular_person_following" type="monocular_person_following_node" name="monocular_person_following" output="screen">
+    <remap from="image" to="$(arg camera_name)/image_raw"/> <!-- in was image_rect-->
+    <param name="use_face" value="$(arg use_face)"/>
+    <param name="use_body" value="true"/>
+
+    <!--
+    /// @brief
+    /// Initial state:
+    ///   if there is a person in front of the camera (within imprinting_max_dist),
+    ///   the person is registered as the target
+    /// Initial Training state:
+    ///   the target person features are added to the classifier a certain time (initial_training_num_samples),
+    ///   then, the sytem transits to the tracking state
+    /// Tracking state:
+    ///   if the identification confidence of the target is lower than min_target_confidence,
+    ///   the system judges that the target is lost, and transits to ReID state
+    /// ReID state:
+    ///   if a track shows a confidence higher than reid_confidence_thresh several times (reid_positive_count),
+    ///   the track is reidentified as the target, and the system transits to Tracking state
+    -->
+    <param name="imprinting_max_dist" value="4.0"/>
+    <param name="initial_training_num_samples" value="10"/>
+    <param name="min_target_confidence" value="0.1"/>
+    <param name="id_switch_detection_thresh" value="-0.1"/>
+    <param name="reid_confidence_thresh" value="0.1"/>
+    <param name="reid_positive_count" value="5"/>
+  </node>
+
+  <!-- *** visualization *** -->
+  <node pkg="monocular_person_following" type="visualization.py" name="visualization_node" output="screen">
+    <remap from="image_rect" to="$(arg camera_name)/image_raw"/> <!-- in was image_rect-->
+    <param name="show" value="false"/>
+    <param name="use_face" value="$(arg use_face)"/>
+  </node>
+  <node pkg="image_transport" type="republish" name="compress_visualize" args="raw in:=/visualization_node/visualize compressed out:=/visualization_node/visualize"/>
+  <node pkg="topic_tools" type="throttle" name="throttle_visualize" args="messages /visualization_node/visualize/compressed 4 /visualization_node/visualize_slow/compressed"/>
+
+  <!-- *** gesture recognition *** -->
+  <node pkg="monocular_person_following" type="simple_gesture_recognition.py" name="simple_gesture_recognition" output="screen"/>
+
+  <!-- *** robot controller *** -->
+  <node pkg="monocular_person_following" type="robot_controller.py" name="robot_controller" if="false">
+    <remap from="cmd_vel" to="/RosAria/cmd_vel"/>
+    <param name="enable_back" value="false"/>
+    <param name="max_vx" value="0.1"/>
+    <param name="max_va" value="0.1"/>
+    <param name="gain_vx" value="0.0"/>
+    <param name="gain_va" value="0.1"/>
+    <param name="distance" value="2.5"/>
+    <param name="timeout" value="0.5"/>
+  </node>
+</launch>

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+  /// @arg sim                  : if true, do not start camera node but run republish node to decompress compressed images
+  /// @arg webcam               : if true, use usb_cam instead of csi_cam
+  /// @arg rosaria              : if true, start rosaria pioneer driver
+  /// @arg publish_dummy_frames : if true, publish dummy (identity) transformations ("odom" <-> "base_link", "base_link" <-> "base_footprint")
+  /// @arg camera_xyz           : camera position w.r.t. base_link
+  /// @arg camera_rpy           : camera_rotation w.r.t. base_link
+  -->
+  <arg name="sim" default="false"/>
+  <arg name="webcam" default="false"/>
+  <arg name="rosaria" default="false"/>
+  <arg name="publish_dummy_frames" default="false"/>
+  <arg name="camera_xyz" default="0 0 0.905"/>
+  <arg name="camera_rpy" default="0 0.005 0"/>
+
+  <include file="$(find tracking_demo)/launch/theta_camera.launch" if="$(arg webcam)">
+    <arg name="sim" value="$(arg sim)"/>
+  </include>
+  <include file="$(find monocular_people_tracking)/launch/jetson_csi_camera.launch" unless="$(arg webcam)">
+    <arg name="sim" value="$(arg sim)"/>
+  </include>
+
+  <include file="$(find monocular_people_tracking)/launch/robot_frames.launch">
+    <arg name="publish_dummy_frames" value="$(arg publish_dummy_frames)"/>
+    <arg name="camera_optical_frame" value="csi_cam_0_link" unless="$(arg webcam)"/>
+    <arg name="camera_optical_frame" value="theta_camera_optical_frame" if="$(arg webcam)"/>
+    <arg name="camera_xyz" value="$(arg camera_xyz)"/>
+    <arg name="camera_rpy" value="$(arg camera_rpy)"/>
+  </include>
+
+  <node pkg="tf" type="static_transform_publisher" name="base_link2base_footprint" args="0 0 0 0 0 0 base_link base_footprint 10" unless="$(arg publish_dummy_frames)"/>
+  <node pkg="rosaria" type="RosAria" name="RosAria" if="$(arg rosaria)"/>
+</launch>
