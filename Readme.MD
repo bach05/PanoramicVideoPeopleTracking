@@ -20,7 +20,7 @@ The work was develepoed in collaboration with [filber97](https://github.com/filb
 
 # Installation
 
-**ATTENTION:** we are working on some installation and compatibility issue. At the moment, we tested it on ROS Melodic. 
+**ATTENTION:** we are working on some installation and compatibility issue. At the moment, we tested it on ROS Melodic. For further details, see this [source](https://github.com/koide3/monocular_person_following/wiki/%5BDeprecated,-Jetpack-4.2%5D-Install-from-source). 
 
 #### Update system
 
