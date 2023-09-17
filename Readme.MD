@@ -14,7 +14,21 @@ We also provide **a dataset of panoramic videos**, labelled everi 10-20 frames w
 If you use our algorithms or our dataset in your reasearch, please cite our article: 
 
 ```
-under review [...] 
+@InProceedings{10.1007/978-3-031-22216-0_28,
+author="Bacchin, Alberto
+and Berno, Filippo
+and Menegatti, Emanuele
+and Pretto, Alberto",
+editor="Petrovic, Ivan
+and Menegatti, Emanuele
+and Markovi{\'{c}}, Ivan",
+title="People Tracking in Panoramic Video for Guiding Robots",
+booktitle="Intelligent Autonomous Systems 17",
+year="2023",
+publisher="Springer Nature Switzerland",
+pages="407--424",
+isbn="978-3-031-22216-0"
+}
 ```
 The work was develepoed in collaboration with [filber97](https://github.com/filber97).
 
